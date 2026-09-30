@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Apex 360° Interior Studio — Yuqori Sifatli 360 Panorama Ko'ruvchi</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Three.js CDN (r128 - stable, high performance) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Custom Stylesheet (White & Warm Beige Palette) -->
+  <link rel="stylesheet" href="assets/css/viewer.css">
+</head>
+<body class="bg-black text-stone-800 select-none overflow-hidden fixed inset-0 w-full h-full m-0 p-0 border-0">
+
+  <!-- 1. WebGL 3D Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- 1.1. Interactive Hotspots Layer -->
+  <div id="hotspots-container" class="absolute inset-0 pointer-events-none z-20 overflow-hidden"></div>
+
+  <!-- 2. Subtle Viewport Crosshair / Orientation Guide -->
+  <div class="subtle-crosshair absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 presentation-toggleable">
+    <div class="w-8 h-8 rounded-full border border-stone-400/40 flex items-center justify-center">
+      <div class="w-1.5 h-1.5 rounded-full bg-stone-500/60"></div>
+    </div>
+  </div>
+
+  <!-- Persistent Semi-transparent Eye Button in Clean Mode (Pastki o'ng burchakdagi prazrachniy ko'z) -->
+  <button id="btn-presentation-restore" class="hidden fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 p-2.5 sm:p-3 rounded-2xl flex items-center justify-center cursor-pointer pointer-events-auto shadow-lg" title="Interfeysni qayta yoqish">
+    <i data-lucide="eye" class="w-5 h-5"></i>
+  </button>
+
+  <!-- 3. TOP NAVIGATION HUD (Presentation Toggleable - Clean Title Only) -->
+  <header class="presentation-toggleable absolute top-0 left-0 w-full p-3 sm:p-6 z-30 flex items-center justify-between pointer-events-none safe-top safe-x">
+    
+    <!-- Left: Project & Active Scene Title -->
+    <div class="pointer-events-auto flex items-center gap-2 sm:gap-3">
+      <div class="glass-pill px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl flex items-center gap-2 sm:gap-3">
+        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-[#b89f82] to-[#8c7b6c] flex items-center justify-center text-white shadow-md shadow-[#8c7b6c]/30 flex-shrink-0">
+          <i data-lucide="compass" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="hidden sm:block text-[10px] font-bold uppercase tracking-wider text-[#8c7b6c]">360° Interyer Studiyasi</div>
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <div id="current-scene-title" class="text-xs sm:text-base font-extrabold text-stone-900 truncate max-w-[160px] xs:max-w-[220px] sm:max-w-xs">
+              360° Rasm kutilmoqda...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FPS & Quality Telemetry Badge (Desktop only) -->
+      <div class="glass-pill hidden lg:flex items-center gap-2 px-3 py-2 rounded-2xl text-xs font-mono text-stone-700">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span id="fps-counter" class="font-bold text-stone-900">60 FPS</span>
+        <span class="text-stone-400">|</span>
+        <span class="text-stone-600 font-medium">Asl Ranglar</span>
+      </div>
+    </div>
+
+  </header>
+
+  <!-- 4. MARKAZIY BOSHLANG'ICH YUKLASH KARTASI (Fayl bo'lmaganda ko'rinadi) -->
+  <div id="initial-upload-card" class="presentation-toggleable absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-center max-w-md w-[90%] p-8 sm:p-10 rounded-3xl glass-panel shadow-2xl">
+    <div class="w-16 h-16 rounded-2xl bg-[#ebd5c1]/40 border border-[#d6c4b2] text-[#8c7b6c] flex items-center justify-center mx-auto mb-5 shadow-lg shadow-[#8c7b6c]/15">
+      <i data-lucide="image" class="w-8 h-8"></i>
+    </div>
+    <h2 class="text-xl sm:text-2xl font-bold text-stone-900 mb-2">360° Interyerni Ochish</h2>
+    <p class="text-xs sm:text-sm text-stone-600 mb-6 leading-relaxed">
+      360° panoramik rasmni (JPG, PNG, WEBP) ekranga tashlang yoki pastdagi to'rtburchak baner orqali yuklang.
+    </p>
+    <div class="flex flex-col gap-2.5">
+      <button onclick="document.getElementById('file-upload-input').click()" class="w-full py-3.5 px-6 rounded-2xl bg-[#8c7b6c] hover:bg-[#78695b] text-white font-bold text-sm shadow-xl shadow-[#8c7b6c]/30 transition-all flex items-center justify-center gap-2 cursor-pointer">
+        <i data-lucide="folder-open" class="w-4 h-4"></i>
+        <span>360 Rasm Tanlash</span>
+      </button>
+      <button onclick="document.getElementById('project-import-input').click()" class="w-full py-2.5 px-4 rounded-xl border border-[#d8cfc0] bg-white/70 hover:bg-white text-stone-700 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer">
+        <i data-lucide="file-up" class="w-3.5 h-3.5 text-[#8c7b6c]"></i>
+        <span>Oldin saqlangan loyihani yuklash (.interior360)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 4.1. NUQTA QO'YISH REJIMI BANERI (Aktiv bo'lganda ko'rinadi) -->
+  <div id="placing-hotspot-banner" class="hidden fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-40 placing-banner-animated pointer-events-auto w-[92%] sm:w-auto max-w-sm sm:max-w-none">
+    <div class="glass-pill px-4 sm:px-5 py-2 sm:py-2.5 rounded-full flex items-center justify-between sm:justify-center gap-2 sm:gap-3 border border-[#c5b8a5] bg-[#faf8f5]/95 shadow-xl text-xs sm:text-sm font-semibold text-stone-800">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-[#8c7b6c] animate-ping flex-shrink-0"></span>
+        <span class="truncate">O'tish nuqtasini bosing</span>
+      </div>
+      <button id="btn-cancel-placement" class="px-2.5 py-1 rounded-lg bg-stone-200/70 hover:bg-stone-200 text-xs text-stone-700 transition-colors cursor-pointer flex-shrink-0">
+        Bekor qilish
+      </button>
+    </div>
+  </div>
+
+  <!-- 4.2. 2D FLOORPLAN / MINI-MAP WIDGET (Presentation Toggleable) -->
+  <div id="floorplan-container" class="presentation-toggleable fixed top-16 left-3 sm:top-20 sm:left-20 z-40 pointer-events-auto transition-all duration-300">
+    
+    <!-- Mini-map Expanded Card -->
+    <div id="floorplan-card" class="hidden glass-panel rounded-3xl p-3 sm:p-3.5 shadow-2xl border border-[#d8cfc0] w-[86vw] max-w-[280px] sm:w-72 flex flex-col gap-2">
+      
+      <!-- Card Header -->
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-lg bg-[#ebd5c1]/60 flex items-center justify-center text-[#8c7b6c]">
+            <i data-lucide="map" class="w-3.5 h-3.5"></i>
+          </div>
+          <span class="text-xs font-bold text-stone-900">2D Xona Rejasi</span>
+        </div>
+
+        <div class="flex items-center gap-1">
+          <!-- Minimize Button -->
+          <button id="btn-minimize-floorplan" class="p-1.5 rounded-lg text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 transition-colors cursor-pointer" title="Kichraytirish">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Floorplan Map View Area -->
+      <div id="floorplan-map-area" class="relative w-full h-36 sm:h-48 rounded-2xl overflow-hidden bg-[#f0ebe1] border border-[#e2dacd] flex items-center justify-center select-none" style="touch-action: none;">
+        
+        <!-- Architectural grid pattern background (when no image uploaded) -->
+        <div id="floorplan-grid-bg" class="absolute inset-0 blueprint-grid pointer-events-none opacity-40"></div>
+
+        <!-- Custom Uploaded Blueprint Image -->
+        <img id="floorplan-image" class="absolute inset-0 w-full h-full object-contain pointer-events-none hidden" alt="Xona Rejasi">
+
+        <!-- Empty state helper text if no rooms/blueprint -->
+        <div id="floorplan-empty-hint" class="relative z-10 text-center p-3 pointer-events-none text-[11px] text-stone-500 font-medium">
+          <i data-lucide="layout-grid" class="w-5 h-5 mx-auto mb-1 text-stone-400"></i>
+          <span>Plan chizmasini yuklang yoki xonani tanlang</span>
+        </div>
+
+        <!-- Dynamic Room Markers Layer -->
+        <div id="floorplan-markers-layer" class="absolute inset-0 z-10" style="touch-action: none;">
+          <!-- Dynamic room pins injected here -->
+        </div>
+
+      </div>
+
+      <!-- Footer Info / Hint -->
+      <div class="flex items-center justify-between px-1 text-[10px] text-stone-500 font-medium">
+        <span>Nuqtani surib joylashtiring</span>
+        <button id="btn-reset-floorplan-pins" class="hover:text-stone-800 underline transition-colors cursor-pointer">
+          Qayta taqsimlash
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Mini-map Minimized Button -->
+    <button id="floorplan-collapsed-btn" class="hidden glass-pill p-2 sm:p-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-stone-800 hover:bg-[#ede7dc] transition-all group cursor-pointer" title="Xona rejasini ochish">
+      <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-xl bg-[#ebd5c1]/60 flex items-center justify-center text-[#8c7b6c]">
+        <i data-lucide="map" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+      </div>
+      <span class="text-xs font-bold pr-1">Plan</span>
+    </button>
+
+  </div>
+
+  <!-- 5. BOTTOM SCENE SWITCHER TRAY (Presentation Toggleable) -->
+  <nav id="bottom-gallery-nav" class="presentation-toggleable fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 max-w-4xl w-[96%] sm:w-auto safe-bottom transition-transform duration-300">
+    <div class="glass-panel p-2 sm:p-3 rounded-2xl sm:rounded-3xl flex flex-row items-center gap-2 sm:gap-3 max-w-full">
+      
+      <!-- Scene Count Info (Desktop) -->
+      <div class="hidden sm:flex flex-col pl-2 pr-3 border-r border-[#e2dacd] flex-shrink-0">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-stone-500">Interyerlar</span>
+        <span id="scene-count-badge" class="text-xs font-bold text-[#8c7b6c]">0 ta xona</span>
+      </div>
+
+      <!-- Gallery Collapse Toggle Button (Mobile) -->
+      <button id="btn-toggle-gallery" class="sm:hidden p-2 rounded-xl text-stone-500 hover:text-stone-800 hover:bg-stone-200/50 transition-colors flex-shrink-0 cursor-pointer" title="Galereyani yashirish/ko'rsatish">
+        <i id="gallery-toggle-icon" data-lucide="chevron-down" class="w-4 h-4"></i>
+      </button>
+
+      <!-- Thumbnail Carousel Container -->
+      <div id="thumbnails-tray" class="flex items-center gap-2 sm:gap-3 overflow-x-auto max-w-full custom-scrollbar py-1 px-1">
+        <!-- Dynamic thumbnails injected by JavaScript -->
+      </div>
+
+      <!-- Action Buttons Container (Barcha boshqaruv pastda - har bir funksiyadan 1 donadan, razmer va stillari bir xil) -->
+      <div class="flex items-center gap-1 xs:gap-1.5 sm:gap-2 flex-shrink-0">
+        
+        <!-- 1. 360 Rasm Yuklash -->
+        <button id="btn-upload-trigger" class="bottom-ctrl-btn glass-pill w-[52px] xs:w-14 sm:w-16 h-16 sm:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border border-[#d8cfc0] bg-white/75 hover:bg-[#ede7dc] transition-all shadow-sm active:scale-95 group cursor-pointer flex-shrink-0" title="360° Rasm yuklash (JPG, PNG, WEBP)">
+          <div class="btn-icon-box w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#ebd5c1]/50 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+            <i data-lucide="image-plus" class="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#8c7b6c] transition-colors"></i>
+          </div>
+          <span class="btn-label text-[10px] sm:text-[11px] font-bold text-stone-700 whitespace-nowrap transition-colors">Rasm</span>
+        </button>
+
+        <!-- 2. Giroskop / Harakat Sensori -->
+        <button id="btn-gyroscope-toggle" class="bottom-ctrl-btn btn-gyroscope-toggle glass-pill w-[52px] xs:w-14 sm:w-16 h-16 sm:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border border-[#d8cfc0] bg-white/75 hover:bg-[#ede7dc] transition-all shadow-sm active:scale-95 group cursor-pointer flex-shrink-0" title="Giroskop / Telefonni burab tomosha qilish">
+          <div class="btn-icon-box w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#ebd5c1]/50 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+            <i data-lucide="smartphone" class="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#8c7b6c] transition-colors"></i>
+          </div>
+          <span class="btn-label text-[10px] sm:text-[11px] font-bold text-stone-700 whitespace-nowrap transition-colors">Giroskop</span>
+        </button>
+
+        <!-- 3. Nuqta Qo'yish (Hotspot) -->
+        <button id="btn-add-hotspot" class="bottom-ctrl-btn glass-pill w-[52px] xs:w-14 sm:w-16 h-16 sm:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border border-[#d8cfc0] bg-white/75 hover:bg-[#ede7dc] transition-all shadow-sm active:scale-95 group cursor-pointer flex-shrink-0" title="Ushbu xonaga yangi o'tish nuqtasi (Hotspot) qo'yish">
+          <div class="btn-icon-box w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#ebd5c1]/50 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+            <i data-lucide="map-pin" class="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#8c7b6c] transition-colors"></i>
+          </div>
+          <span class="btn-label text-[10px] sm:text-[11px] font-bold text-stone-700 whitespace-nowrap transition-colors">Nuqta</span>
+        </button>
+
+        <!-- 4. Toza Ekran (Ko'z) -->
+        <button id="btn-presentation-mode" class="bottom-ctrl-btn glass-pill w-[52px] xs:w-14 sm:w-16 h-16 sm:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border border-[#d8cfc0] bg-white/75 hover:bg-[#ede7dc] transition-all shadow-sm active:scale-95 group cursor-pointer flex-shrink-0" title="Toza ekran (Interfeysni yashirish)">
+          <div class="btn-icon-box w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#ebd5c1]/50 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+            <i data-lucide="eye" class="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#8c7b6c] transition-colors"></i>
+          </div>
+          <span class="btn-label text-[10px] sm:text-[11px] font-bold text-stone-700 whitespace-nowrap transition-colors">Ko'z</span>
+        </button>
+
+        <!-- 5. To'liq Ekran (Fullscreen) -->
+        <button id="btn-fullscreen" class="bottom-ctrl-btn glass-pill w-[52px] xs:w-14 sm:w-16 h-16 sm:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border border-[#d8cfc0] bg-white/75 hover:bg-[#ede7dc] transition-all shadow-sm active:scale-95 group cursor-pointer flex-shrink-0" title="To'liq ekran">
+          <div class="btn-icon-box w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#ebd5c1]/50 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+            <i data-lucide="maximize" class="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#8c7b6c] transition-colors"></i>
+          </div>
+          <span class="btn-label text-[10px] sm:text-[11px] font-bold text-stone-700 whitespace-nowrap transition-colors">Katta</span>
+        </button>
+
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- 5.1. MOBILE ACTION MENU SHEET (Slide-up Drawer for Phone Screens) -->
+  <div id="mobile-menu-sheet" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex flex-col justify-end transition-opacity">
+    <div class="glass-panel rounded-t-3xl p-5 border-t border-[#d8cfc0] shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto safe-bottom animate-slide-up">
+      <div class="flex items-center justify-between pb-3 border-b border-[#e2dacd]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-[#ebd5c1]/60 flex items-center justify-center text-[#8c7b6c]">
+            <i data-lucide="sliders" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-stone-900">Boshqaruv Paneli</h4>
+            <p class="text-[11px] text-stone-500">Qo'shimcha amallar va loyiha sozlamalari</p>
+          </div>
+        </div>
+        <button id="btn-close-mobile-menu" class="p-2 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Action items grid -->
+      <div class="grid grid-cols-2 gap-2.5 text-xs font-bold text-stone-800">
+        <!-- Export -->
+        <button id="btn-mobile-export" class="p-3.5 rounded-2xl bg-white/80 border border-[#e2dacd] flex flex-col items-center justify-center gap-2 hover:bg-white text-center active:scale-95 transition-all cursor-pointer">
+          <div class="w-9 h-9 rounded-xl bg-[#8c7b6c] text-white flex items-center justify-center shadow-md shadow-[#8c7b6c]/20">
+            <i data-lucide="download" class="w-4 h-4"></i>
+          </div>
+          <span>Loyihani saqlash</span>
+        </button>
+
+        <!-- Import -->
+        <button id="btn-mobile-import" class="p-3.5 rounded-2xl bg-white/80 border border-[#e2dacd] flex flex-col items-center justify-center gap-2 hover:bg-white text-center active:scale-95 transition-all cursor-pointer">
+          <div class="w-9 h-9 rounded-xl bg-[#ebd5c1]/60 text-[#8c7b6c] flex items-center justify-center">
+            <i data-lucide="folder-open" class="w-4 h-4"></i>
+          </div>
+          <span>Loyihani ochish</span>
+        </button>
+
+        <!-- New Project -->
+        <button id="btn-mobile-new" class="p-3.5 rounded-2xl bg-white/80 border border-[#e2dacd] flex flex-col items-center justify-center gap-2 hover:bg-white text-center active:scale-95 transition-all cursor-pointer">
+          <div class="w-9 h-9 rounded-xl bg-[#ebd5c1]/60 text-[#8c7b6c] flex items-center justify-center">
+            <i data-lucide="file-plus-2" class="w-4 h-4"></i>
+          </div>
+          <span>Yangi loyiha</span>
+        </button>
+
+        <!-- 2D Floorplan toggle -->
+        <button id="btn-mobile-floorplan" class="p-3.5 rounded-2xl bg-white/80 border border-[#e2dacd] flex flex-col items-center justify-center gap-2 hover:bg-white text-center active:scale-95 transition-all cursor-pointer">
+          <div class="w-9 h-9 rounded-xl bg-[#ebd5c1]/60 text-[#8c7b6c] flex items-center justify-center">
+            <i data-lucide="map" class="w-4 h-4"></i>
+          </div>
+          <span>2D Xona rejasi</span>
+        </button>
+
+        <!-- Auto Rotate -->
+        <button id="btn-mobile-autorotate" class="p-3.5 rounded-2xl bg-white/80 border border-[#e2dacd] flex flex-col items-center justify-center gap-2 hover:bg-white text-center active:scale-95 transition-all cursor-pointer">
+          <div class="w-9 h-9 rounded-xl bg-[#ebd5c1]/60 text-[#8c7b6c] flex items-center justify-center">
+            <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+          </div>
+          <span id="label-mobile-autorotate">Avto-aylanish</span>
+        </button>
+
+        <!-- Presentation Clean Mode -->
+        <button id="btn-mobile-presentation" class="p-3.5 rounded-2xl bg-white/80 border border-[#e2dacd] flex flex-col items-center justify-center gap-2 hover:bg-white text-center active:scale-95 transition-all cursor-pointer">
+          <div class="w-9 h-9 rounded-xl bg-[#ebd5c1]/60 text-[#8c7b6c] flex items-center justify-center">
+            <i data-lucide="eye" class="w-4 h-4"></i>
+          </div>
+          <span>Toza ekran</span>
+        </button>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="text-[11px] text-stone-500 text-center pt-2 border-t border-[#e2dacd]/60 flex items-center justify-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>WebGL 60 FPS • Asl Ranglar • Apex 360 Studio</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. HOTSPOT CREATION MODAL -->
+  <div id="hotspot-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto safe-bottom">
+    <div class="bg-[#faf8f5] border border-[#d8cfc0] rounded-3xl max-w-md w-full p-5 sm:p-8 shadow-2xl space-y-4 sm:space-y-5 animate-scale-up text-stone-800 my-auto">
+      
+      <div class="flex items-center justify-between border-b border-[#e2dacd] pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-[#ebd5c1]/40 border border-[#d6c4b2] text-[#8c7b6c] flex items-center justify-center">
+            <i data-lucide="navigation-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-stone-900">Yangi O'tish Nuqtasi</h3>
+            <p class="text-xs text-stone-500">Nuqta bosilganda qaysi 360 rasmga o'tsin?</p>
+          </div>
+        </div>
+        <button id="btn-close-modal" class="p-2 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Hotspot Label -->
+        <div>
+          <label class="block text-xs font-semibold text-stone-600 uppercase tracking-wider mb-2">Nuqta nomi</label>
+          <input type="text" id="hotspot-name-input" placeholder="Masalan: Oshxonaga o'tish, Balkon..." class="w-full px-4 py-3 rounded-xl bg-white border border-[#d8cfc0] text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#8c7b6c] text-sm">
+        </div>
+
+        <!-- Target Scene Selection -->
+        <div>
+          <label class="block text-xs font-semibold text-stone-600 uppercase tracking-wider mb-2">Bog'lanuvchi 360 Rasm</label>
+          <select id="hotspot-target-select" class="w-full px-4 py-3 rounded-xl bg-white border border-[#d8cfc0] text-stone-900 focus:outline-none focus:border-[#8c7b6c] text-sm mb-3">
+            <!-- Dynamically populated -->
+          </select>
+
+          <!-- Or Upload New 360 Image directly for this point -->
+          <div class="pt-3 border-t border-[#e2dacd]">
+            <label class="block text-xs font-semibold text-[#8c7b6c] mb-2">Yoki ushbu nuqta uchun yangi 360 rasm yuklang:</label>
+            <input type="file" id="hotspot-file-input" accept="image/*" class="w-full text-xs text-stone-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#ebd5c1]/40 file:text-[#786b59] hover:file:bg-[#ebd5c1]/60 file:cursor-pointer">
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Buttons -->
+      <div class="flex items-center gap-3 pt-2">
+        <button id="btn-cancel-modal" class="flex-1 py-3 rounded-xl bg-stone-200/70 hover:bg-stone-200 text-stone-700 text-xs sm:text-sm font-bold transition-colors cursor-pointer">
+          Bekor qilish
+        </button>
+        <button id="btn-save-hotspot" class="flex-1 py-3 rounded-xl bg-[#8c7b6c] hover:bg-[#78695b] text-white text-xs sm:text-sm font-bold shadow-lg shadow-[#8c7b6c]/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>Nuqtani saqlash</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 7. FULLSCREEN DRAG & DROP OVERLAY (Warm Beige Theme) -->
+  <div id="drop-zone-overlay" class="absolute inset-0 z-50 pointer-events-none opacity-0 flex flex-col items-center justify-center border-4 border-dashed border-[#8c7b6c] bg-[#f7f5f0]/95 backdrop-blur-md">
+    <div class="text-center space-y-4 max-w-md p-8 rounded-3xl glass-panel border border-[#c5b8a5] shadow-2xl">
+      <div class="w-20 h-20 rounded-full bg-[#ebd5c1]/40 border-2 border-[#8c7b6c] flex items-center justify-center mx-auto text-[#8c7b6c] pulse-indicator">
+        <i data-lucide="image-plus" class="w-10 h-10"></i>
+      </div>
+      <div>
+        <h3 class="text-xl sm:text-2xl font-extrabold text-stone-900">360° Rasmni Tashlang (Drop)</h3>
+        <p class="text-sm text-stone-600 mt-2 leading-relaxed">
+          Bir vaqtning o'zida bir nechta 360 panoramalarni (JPG, PNG, WEBP) tashlashingiz mumkin. Ular bir zumda ochiladi va ro'yxatga qo'shiladi!
+        </p>
+      </div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ebd5c1]/30 border border-[#d6c4b2] text-[#786b59] text-xs font-mono">
+        <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-600"></i>
+        Nol soniya kechikish (Instant WebGL Cache)
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Inputs for project file import and floorplan image upload -->
+  <input type="file" id="file-upload-input" multiple accept="image/*" class="hidden">
+  <input type="file" id="project-import-input" accept=".interior360,.json" class="hidden">
+  <input type="file" id="floorplan-file-input" accept="image/*" class="hidden">
+
+  <!-- Toast Notification Layer -->
+  <div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col gap-2.5 pointer-events-none"></div>
+
+  <!-- Loading / Import Progress Overlay -->
+  <div id="loading-overlay" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-auto">
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 text-center max-w-xs border border-[#d8cfc0]">
+      <div class="w-12 h-12 rounded-full border-4 border-[#8c7b6c] border-t-transparent animate-spin"></div>
+      <div>
+        <h4 id="loading-title" class="font-bold text-stone-900 text-sm sm:text-base">Yuklanmoqda...</h4>
+        <p id="loading-subtitle" class="text-xs text-stone-500 mt-1">360 xonalar qayta ishlanmoqda</p>
+      </div>
+  <!-- QR Code Modal For Mobile Access -->
+  <div id="qr-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="glass-panel p-6 sm:p-7 rounded-3xl max-w-sm w-full text-center space-y-4 border border-[#d8cfc0] shadow-2xl animate-scale-up">
+      <div class="flex items-center justify-between pb-2 border-b border-[#e2dacd]">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-xl bg-[#ebd5c1]/60 flex items-center justify-center text-[#8c7b6c]">
+            <i data-lucide="smartphone" class="w-4 h-4"></i>
+          </div>
+          <span class="text-sm font-bold text-stone-900">Telefonda Ochish</span>
+        </div>
+        <button id="btn-close-qr-modal" class="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl inline-block shadow-inner border border-[#e2dacd] mx-auto">
+        <img id="qr-image" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=http://192.168.10.71:5500" class="w-44 h-44 mx-auto rounded-lg" alt="QR Kod">
+      </div>
+
+      <div class="space-y-2 text-xs text-stone-600">
+        <p class="font-medium text-stone-700">Telefoningiz va kompyuter bitta <b>Wi-Fi</b>ga ulangan bo'lishi kerak.</p>
+        <div class="p-2.5 rounded-xl bg-stone-100/90 font-mono text-xs font-bold text-[#8c7b6c] break-all select-all border border-stone-200">
+          http://192.168.10.71:5500
+        </div>
+        <p class="text-[11px] text-stone-400 leading-tight">Telefon kamerasini QR kodga qarating yoki manzilni brauzerga yozing.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core 360 Viewer JavaScript Engine -->
+  <script src="assets/js/viewer360.js"></script>
+
+  <script>
+    // Initialize icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>

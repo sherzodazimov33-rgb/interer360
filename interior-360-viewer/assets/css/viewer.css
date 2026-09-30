@@ -1,0 +1,479 @@
+/* 360 Interior Panorama Viewer - Luxury White & Warm Beige Palette */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  overflow: hidden;
+  position: fixed;
+  inset: 0;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: none;
+  background-color: #000000;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #292524; /* Warm Deep Charcoal / Stone */
+}
+
+#canvas-container {
+  position: fixed;
+  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  background-color: #000000;
+}
+
+#canvas-container:active {
+  cursor: grabbing;
+}
+
+#canvas-container canvas {
+  display: block !important;
+  vertical-align: top !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* Placing Hotspot active cursor */
+body.placing-hotspot #canvas-container {
+  cursor: crosshair !important;
+}
+
+/* Luxury White & Warm Beige Glassmorphism */
+.glass-panel {
+  background: rgba(250, 248, 245, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(226, 218, 205, 0.85);
+  box-shadow: 0 10px 30px -5px rgba(120, 107, 89, 0.12);
+  color: #292524;
+}
+
+.glass-pill {
+  background: rgba(250, 248, 245, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(226, 218, 205, 0.85);
+  box-shadow: 0 6px 20px -4px rgba(120, 107, 89, 0.1);
+  color: #292524;
+}
+
+/* Subtle crosshair */
+.subtle-crosshair {
+  pointer-events: none;
+  opacity: 0.35;
+  transition: opacity 0.3s ease;
+}
+
+/* Drag & Drop Overlay (Warm Beige) */
+#drop-zone-overlay {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#drop-zone-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+  border-color: #8c7b6c;
+  background: rgba(247, 245, 240, 0.95);
+}
+
+/* Thumbnail Gallery Bar */
+.gallery-thumbnail {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gallery-thumbnail.active {
+  border-color: #8c7b6c;
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: 0 10px 25px -5px rgba(140, 123, 108, 0.4);
+}
+
+.gallery-thumbnail:hover:not(.active) {
+  border-color: rgba(140, 123, 108, 0.5);
+  transform: translateY(-2px);
+}
+
+/* Custom Scrollbar in Warm Beige */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(226, 218, 205, 0.3);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(140, 123, 108, 0.4);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 123, 108, 0.6);
+}
+
+/* Pulse animation */
+@keyframes ring-pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 0.4; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.pulse-indicator {
+  animation: ring-pulse 2s infinite ease-in-out;
+}
+
+/* Hotspot Interactive Markers (Pristine White & Transparent Glass) */
+.hotspot-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 25;
+  transition: opacity 0.2s ease, transform 0.05s linear;
+  will-change: transform;
+}
+
+.hotspot-marker .marker-circle {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hotspot-marker:hover .marker-circle {
+  transform: scale(1.18);
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
+}
+
+.marker-label {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translate(-50%, -4px);
+  opacity: 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.hotspot-marker:hover .marker-label {
+  opacity: 1;
+  transform: translate(-50%, -10px);
+}
+
+/* Placing indicator banner animation */
+@keyframes bounce-subtle {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -6px); }
+}
+
+.placing-banner-animated {
+  animation: bounce-subtle 2s infinite ease-in-out;
+}
+
+/* 2D Floorplan & Blueprint Styles */
+.blueprint-grid {
+  background-size: 20px 20px;
+  background-image: 
+    linear-gradient(to right, rgba(140, 123, 108, 0.16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(140, 123, 108, 0.16) 1px, transparent 1px);
+}
+
+.floorplan-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  z-index: 10;
+  transition: transform 0.08s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.floorplan-pin:active {
+  cursor: grabbing;
+}
+
+.floorplan-pin.active {
+  z-index: 25;
+}
+
+/* Dynamic Radar Cone on 2D Plan */
+.floorplan-radar-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 140px;
+  height: 140px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+}
+
+.floorplan-radar-svg {
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+  filter: drop-shadow(0 0 6px rgba(140, 123, 108, 0.4));
+  transition: transform 0.04s linear;
+}
+
+.floorplan-pin-dot {
+  position: relative;
+  z-index: 10;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #faf8f5;
+  border: 2.5px solid #8c7b6c;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.floorplan-pin:hover .floorplan-pin-dot {
+  transform: scale(1.18);
+  border-color: #5c5043;
+}
+
+.floorplan-pin.active .floorplan-pin-dot {
+  background: #8c7b6c;
+  border-color: #ffffff;
+  transform: scale(1.22);
+  box-shadow: 0 0 14px rgba(140, 123, 108, 0.7);
+}
+
+.floorplan-pin.active .floorplan-pin-dot::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.floorplan-pin-label {
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(250, 248, 245, 0.95);
+  border: 1px solid rgba(216, 207, 192, 0.95);
+  color: #292524;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 30;
+}
+
+.floorplan-pin:hover .floorplan-pin-label,
+.floorplan-pin.active .floorplan-pin-label {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+/* Toast Notifications */
+.toast-item {
+  animation: toast-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: auto;
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast-item.removing {
+  animation: toast-slide-out 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes toast-slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+}
+
+/* Gallery Thumbnail Delete Button */
+.btn-delete-thumb {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Safe Area Insets for Modern Mobile Devices (Notch, Home Indicator) */
+.safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+.safe-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+.safe-x {
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+}
+
+/* Mobile Slide-up Drawer Animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Collapsible Bottom Gallery on Mobile */
+#bottom-gallery-nav.collapsed {
+  transform: translate(-50%, calc(100% - 40px));
+}
+
+#bottom-gallery-nav.collapsed #thumbnails-tray,
+#bottom-gallery-nav.collapsed .flex-shrink-0:not(#btn-toggle-gallery) {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+#bottom-gallery-nav.collapsed #gallery-toggle-icon {
+  transform: rotate(180deg);
+}
+
+#gallery-toggle-icon {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Mobile / Touch Screen Optimizations */
+@media (hover: none) {
+  .btn-delete-thumb {
+    opacity: 0.92 !important;
+  }
+  
+  .hotspot-marker {
+    padding: 8px;
+    margin: -8px;
+  }
+  
+  .hotspot-marker .marker-label {
+    opacity: 0.95;
+    transform: translate(-50%, -6px);
+    font-size: 10px;
+    padding: 2px 7px;
+  }
+}
+
+/* Persistent Semi-transparent Eye Button in Clean Mode (Prazrachniy ko'z) */
+#btn-presentation-restore {
+  background: rgba(250, 248, 245, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(226, 218, 205, 0.6);
+  color: #44403c;
+  opacity: 0.42;
+  box-shadow: 0 4px 20px -2px rgba(120, 107, 89, 0.15);
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, border-color 0.2s ease;
+}
+
+#btn-presentation-restore:hover,
+#btn-presentation-restore:active {
+  opacity: 1 !important;
+  background: rgba(250, 248, 245, 0.95);
+  border-color: #8c7b6c;
+  color: #1c1917;
+  transform: scale(1.08);
+  box-shadow: 0 8px 25px -4px rgba(140, 123, 108, 0.35);
+}
+
+
+/* Presentation Mode Hidden Overrides (Ekran to'liq toza bo'lishi, hech qanday oq chiziq qolmasligi uchun) */
+.presentation-toggleable.hidden,
+#bottom-gallery-nav.hidden,
+#left-action-dock.hidden,
+#floorplan-container.hidden,
+header.hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: none !important;
+}
+
+/* Bottom Control Buttons Uniformity & Luxury Active States */
+.bottom-ctrl-btn {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.bottom-ctrl-btn:hover .btn-icon-box {
+  background-color: rgba(235, 213, 193, 0.85);
+}
+
+.bottom-ctrl-btn.active {
+  background: #8c7b6c !important;
+  border-color: #78695b !important;
+  box-shadow: 0 4px 16px -2px rgba(140, 123, 108, 0.5) !important;
+}
+
+.bottom-ctrl-btn.active .btn-icon-box {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.bottom-ctrl-btn.active i,
+.bottom-ctrl-btn.active svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.bottom-ctrl-btn.active .btn-label {
+  color: #ffffff !important;
+}
+
+
+
